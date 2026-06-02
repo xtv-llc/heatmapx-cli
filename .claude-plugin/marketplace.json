@@ -1,0 +1,20 @@
+{
+  "name": "heatmapx",
+  "description": "HeatMapX — CRO as Code. Claude Code skill for conversion-rate analysis and copy-patch PRs.",
+  "owner": {
+    "name": "XTV LLC",
+    "email": "tomoya_tokudome@xtv.co.jp"
+  },
+  "plugins": [
+    {
+      "name": "heatmapx",
+      "description": "HeatMapX CLI as a Claude Code skill — analyze a page's conversion rate, summarize CRO suggestions, generate a copy/style patch, and open a PR.",
+      "version": "0.1.0",
+      "source": "./plugins/heatmapx-skill",
+      "author": {
+        "name": "XTV LLC",
+        "email": "tomoya_tokudome@xtv.co.jp"
+      }
+    }
+  ]
+}

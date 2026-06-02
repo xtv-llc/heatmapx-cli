@@ -1,0 +1,20 @@
+{
+  "name": "heatmapx",
+  "description": "HeatMapX CLI as a Claude Code skill — analyze a page's conversion rate, summarize CRO suggestions, generate a copy/style patch, and open a PR.",
+  "version": "0.1.0",
+  "author": {
+    "name": "XTV LLC",
+    "email": "tomoya_tokudome@xtv.co.jp"
+  },
+  "homepage": "https://heatmapx.com",
+  "repository": "https://github.com/xtv-llc/heatmapx-cli",
+  "license": "MIT",
+  "keywords": [
+    "heatmapx",
+    "cro",
+    "conversion-rate-optimization",
+    "heatmap",
+    "marketing",
+    "ab-testing"
+  ]
+}
