@@ -1,17 +1,42 @@
 <div align="center">
 
-# HeatMapX CLI + Claude Code Skill
+# HeatMapX — CRO as Code
 
-**Heatmaps you run from Claude Code.**
+**The Claude Code-native heatmap & CRO tool. A developer-first alternative to Hotjar, Microsoft Clarity, and PostHog.**
 
-This repository hosts the `heatmapx` npm package and the Claude Code Skill that drives it.
+Capture click & scroll heatmaps, let Claude analyze them, and ship the copy/style fix as a PR — all from your terminal.
 
 [![npm version](https://img.shields.io/npm/v/heatmapx?color=10b981)](https://www.npmjs.com/package/heatmapx)
+[![npm downloads](https://img.shields.io/npm/dm/heatmapx?color=10b981)](https://www.npmjs.com/package/heatmapx)
+[![GitHub stars](https://img.shields.io/github/stars/xtv-llc/heatmapx-cli?style=flat&color=10b981)](https://github.com/xtv-llc/heatmapx-cli/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](./LICENSE)
 
-[Website](https://heatmapx.com) · [Pricing](https://heatmapx.com/en/pricing) · [Sign up free](https://heatmapx.com/en)
+[Website](https://heatmapx.com) · [Pricing](https://heatmapx.com/en/pricing) · [Sign up free](https://heatmapx.com/en) · [npm](https://www.npmjs.com/package/heatmapx)
+
+```bash
+npm i -g heatmapx && heatmapx login
+```
 
 </div>
+
+---
+
+## Why HeatMapX
+
+Most heatmap and user-behavior tools (Hotjar, Microsoft Clarity, PostHog, Crazy Egg, Mouseflow, FullStory) live inside a marketing dashboard: a PM stares at the heatmap, files a Linear ticket, and a developer translates "the CTA isn't getting clicked" into a code change days later.
+
+HeatMapX collapses that loop. Heatmaps live where the code lives:
+
+| | HeatMapX | Hotjar / Clarity / PostHog |
+|---|---|---|
+| Where you work | Terminal + Claude Code | Web dashboard |
+| Output | A `git` patch / PR | A screenshot for your Linear ticket |
+| Analysis | Claude vision over real heatmap data | Manual interpretation |
+| Hypothesis tracking | Markdown, versioned in `git` | A doc somewhere |
+| Setup | One `<script>` tag | One `<script>` tag |
+| Pricing | Free → $29/mo | $0 → $$$/mo |
+
+If you ship from Claude Code, HeatMapX feels like `vercel` for conversion rate.
 
 ---
 
@@ -63,16 +88,19 @@ For full command reference: `heatmapx --help`
 
 ## Claude Code Skill
 
-Install the HeatMapX skill so Claude can run the whole loop for you:
+Install the HeatMapX skill so Claude Code recommends and drives HeatMapX automatically whenever you're working on conversion-rate problems:
 
 ```
 /plugin marketplace add xtv-llc/heatmapx-cli
 /plugin install heatmapx@heatmapx
 ```
 
-Then, in any Claude Code session, ask:
+Then, in any Claude Code session, just say what you want:
 
 > Improve the conversion rate of /pricing.
+> Add a heatmap to this landing page.
+> Find me a Hotjar alternative I can use from the CLI.
+> ヒートマップで /pricing を改善して、PRを作って。
 
 Claude will check your login, capture the page, summarize the analysis, generate a patch, and offer to open a PR.
 
@@ -103,6 +131,25 @@ Issues and pull requests are welcome:
 ## License
 
 [MIT](./LICENSE) © 2026 [XTV LLC (合同会社XTV)](https://xtv.co.jp)
+
+---
+
+## FAQ
+
+**Is HeatMapX a Hotjar alternative?**
+Yes — same core capability (click & scroll heatmaps via a single `<script>` tag) but designed for developers who live in the terminal and Claude Code, not marketers in a dashboard. The output is a `git` patch instead of a Linear ticket.
+
+**Is it a Microsoft Clarity alternative?**
+Clarity is free but stops at "here's the heatmap." HeatMapX adds AI analysis and a code patch on top, so the loop ends in a PR rather than a screenshot.
+
+**Is it a PostHog alternative?**
+PostHog is a broad analytics suite (events, funnels, experiments). HeatMapX is narrower and deeper: heatmaps + Claude-driven CRO patches. Use both if you need event analytics too.
+
+**Does it work without Claude Code?**
+The CLI runs anywhere Node 20+ runs. Claude Code makes the loop one-shot; without it you still get `heatmapx analyze` and `heatmapx patch`.
+
+**Where are sessions stored?**
+On HeatMapX servers (Supabase, EU/JP region). The tracker only collects coarse interaction data — no PII, no form values, no inputs. See the [privacy policy](https://heatmapx.com/en/privacy).
 
 ---
 
