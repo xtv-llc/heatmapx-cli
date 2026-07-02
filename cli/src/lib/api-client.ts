@@ -48,36 +48,6 @@ export interface HeatmapSummaryDTO {
   lowData: boolean
 }
 
-export interface AnalyzeResponseBody {
-  analysis_run_id: string
-  markdown: string
-  screenshot_url: string
-  duration_ms: number
-  cost_usd: number
-  usage: { used: number; quota: number; plan: string }
-  summary?: HeatmapSummaryDTO
-}
-
-export async function cliAnalyze(
-  apiKey: string,
-  body: {
-    url: string
-    hypothesis: { goal: string; variants: { name: string }[] }
-    period?: AnalyzePeriod
-    lang?: 'en' | 'ja'
-  },
-): Promise<AnalyzeResponseBody> {
-  const res = await fetch(`${baseUrl()}/api/cli/analyze`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) {
-    throw new Error(await readApiError(res))
-  }
-  return res.json() as Promise<AnalyzeResponseBody>
-}
-
 export interface DataResponse {
   url: string
   period: { from: string; to: string }
@@ -129,59 +99,4 @@ export async function getUsage(apiKey: string): Promise<UsageResponse> {
   })
   if (!res.ok) throw new Error(`usage_failed: ${res.status}`)
   return res.json() as Promise<UsageResponse>
-}
-
-export interface PatchFindFileBody {
-  suggestion: string
-  analysis_run_id?: string
-  target_candidates: { path: string; content: string }[]
-}
-
-export interface PatchFindFileResponse {
-  target_file: string
-  confidence: number
-  usage: { used: number; quota: number; plan: string }
-}
-
-export async function patchFindFile(
-  apiKey: string,
-  body: PatchFindFileBody,
-): Promise<PatchFindFileResponse> {
-  const res = await fetch(`${baseUrl()}/api/cli/patch`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ mode: 'find_file', ...body }),
-  })
-  if (!res.ok) {
-    throw new Error(await readApiError(res))
-  }
-  return res.json() as Promise<PatchFindFileResponse>
-}
-
-export interface PatchGenerateDiffBody {
-  suggestion: string
-  analysis_run_id?: string
-  file_path: string
-  file_content: string
-}
-
-export interface PatchGenerateDiffResponse {
-  original: string
-  modified: string
-  usage: { used: number; quota: number; plan: string }
-}
-
-export async function patchGenerateDiff(
-  apiKey: string,
-  body: PatchGenerateDiffBody,
-): Promise<PatchGenerateDiffResponse> {
-  const res = await fetch(`${baseUrl()}/api/cli/patch`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ mode: 'generate_diff', ...body }),
-  })
-  if (!res.ok) {
-    throw new Error(await readApiError(res))
-  }
-  return res.json() as Promise<PatchGenerateDiffResponse>
 }
