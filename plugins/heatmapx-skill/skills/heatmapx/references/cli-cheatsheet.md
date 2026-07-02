@@ -1,6 +1,6 @@
 # HeatMapX CLI Cheatsheet (v0.4.0)
 
-All commands print human-readable text to stdout/stderr; pass `--json` (where available) for machine-readable stdout. Progress/usage lines go to **stderr**, so in `--json` mode stdout stays pure JSON.
+All commands print human-readable text to stdout/stderr; pass `--json` (where available) for machine-readable stdout. Progress lines go to **stderr**, so in `--json` mode stdout stays pure JSON.
 
 | Command | Flags | Description |
 |---|---|---|
@@ -10,16 +10,17 @@ All commands print human-readable text to stdout/stderr; pass `--json` (where av
 | `heatmapx login` | | Browser (device-code) auth; saves API key |
 | `heatmapx logout` | | Delete saved credentials |
 | `heatmapx whoami` | `--json` | Login status / plan / monthly usage |
-| `heatmapx analyze [path]` | `--json` `-o, --output <file>` | Capture the page + run Claude CRO analysis |
-| `heatmapx patch <analysis.md>` | `--suggestion <n>` `--target <path>` `--output-dir <dir>` `--dry-run` `--json` | Generate a unified-diff patch for one suggestion |
+| `heatmapx data [path]` | `--json` `-o, --output <file>` `--days <n>` `--from <date>` `--to <date>` `--screenshot` | Fetch aggregated heatmap data (no server AI — you analyze it) |
+| `heatmapx analyze [path]` | same as `data` | **Alias of `data`** since v0.4.0 (prints a migration notice to stderr) |
+| `heatmapx patch` | | **Retired** — prints guidance to stderr and exits 1. You edit the code yourself |
 | `heatmapx --version` | | Print version (machine-parseable) |
 
 ## Notes for skill use
 
-- **Non-interactive patch:** always pass `--suggestion <n>`. Without it, `patch` opens an interactive prompt and will hang in a non-TTY. Add `--target <path>` if you already know the file to skip the file-detection prompt too.
-- **`analyze` is slow:** ~60–90s (screenshot capture + Claude). Use `-o <file>` then read the file, or `--json` to parse `{ markdown, usage, duration_ms, cost_usd }`.
-- **`patch --json` output:** `{ suggestion: {index,title}, target_file, dry_run, patch_path, diff, usage }`. `patch_path` is `null` when `--dry-run`.
-- **No PR flags.** This CLI version does **not** create PRs. Inside Claude Code, apply the patch with `git apply <patch_path>` and open the PR yourself with `gh pr create`.
-- **Quota weights:** `analyze` = 1.0, patch file-find = 0.2, patch diff-gen = 0.3 per the user's monthly quota.
-- **Config keys** (`heatmap.config.ts`): `site`, `page`, `goal`, `variants[]`, `targets[]` (globs like `["src/**/*.tsx"]` — required for `patch`).
+- **`data` is fast** (seconds — no AI on the server). Prefer `--json -o <file>` then Read the file.
+- **`data --json` output:** `{ url, period: {from,to}, site_found, summary, screenshot_url? }` where `summary` = `{ period, clickZones: [{row, cols:[L,C,R]%}], totalClicks, scrollReach: {25,50,75,100}, totalSessions, lowData }` or `null`.
+- **Period:** default is the last 30 days. `--days <n>` for last N days, or `--from`/`--to` (YYYY-MM-DD) for an exact range.
+- **`--screenshot`** adds a `screenshot_url` to the response if you want visual context.
+- **Analysis, code edits, and PRs are your job.** The CLI only fetches data. Edit with the Edit tool, then `git`/`gh` for the PR.
+- **Config keys** (`heatmap.config.ts`): `site`, `page`, `goal`, `variants[]`.
 - **Env:** `HEATMAPX_API_URL` overrides the API base (default `https://heatmapx.com`).

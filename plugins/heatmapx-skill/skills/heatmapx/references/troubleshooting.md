@@ -8,38 +8,30 @@ CLI errors print to stderr as `[heatmapx] error: <message>` (server-side errors 
 |---|---|---|
 | `Not logged in. Run \`heatmapx login\`.` | No saved credentials | `heatmapx login` |
 | `whoami --json` exits non-zero | Not logged in | `heatmapx login` |
+| `invalid_api_key` (401) | API key revoked or invalid | `heatmapx logout && heatmapx login` |
 | `usage_failed: 401` / `403` | API key revoked or invalid | `heatmapx logout && heatmapx login` |
 
-## analyze
+## data / analyze
 
 | Message (contains) | Cause | Fix |
 |---|---|---|
-| `Monthly quota exceeded` / `quota_exceeded` | Monthly analysis quota used up | Upgrade at https://heatmapx.com/pricing, or wait for next month |
-| `server_misconfigured` | Server's `ANTHROPIC_API_KEY` not set | Contact the HeatMapX operator (server-side) |
-| `claude_api_error: ... credit_balance_too_low` | Server's Anthropic credit exhausted | Contact the HeatMapX operator |
-| `capture_failed` / `http_5xx` | Screenshot capture failed | Verify the page URL is reachable; retry |
+| `server_ai_retired` (410) | An old CLI (< 0.4.0) is calling the retired server-AI endpoints | `npm i -g heatmapx@latest`, then use `heatmapx data` |
+| `rate_limited` (429) | Too many requests | Wait a minute and retry |
+| `invalid_url` (422) | URL isn't an absolute http(s) URL | Check `site`/`page` in `heatmap.config.ts` or the path argument |
+| `invalid_period` (422) | Bad `--days` / `--from` / `--to` values | Use `--days <n>` or `--from`/`--to` as YYYY-MM-DD |
+| `data_failed` (502) | Server failed to aggregate data | Retry; if persistent, contact the HeatMapX operator |
+| `site_found: false` in output | Site not registered / tracker tag missing | Add the site in the dashboard (https://heatmapx.com/dashboard) and install the `<script>` tag |
+| `Low data` warning / `lowData: true` | Under ~50 clicks / 30 sessions in the period | Treat suggestions as low-confidence; try a longer period (`--days 90`) |
 
-## patch
+## patch (retired)
 
-| Message (contains) | Cause | Fix |
-|---|---|---|
-| `no suggestions found in <file>` | analysis.md has no suggestion section | Re-run `analyze`, or pass the correct analysis file |
-| `suggestion #<n> not found` | `--suggestion` index out of range | Use an index shown in the analysis summary |
-| `heatmap.config.ts に targets を設定してください` | `targets` empty/missing in config | Add globs, e.g. `targets: ["src/**/*.tsx"]` |
-| `targets glob にマッチするファイルがありません` | Globs match no files | Fix the `targets` globs to point at real files |
-| `該当テキストが見つかりません` | Suggested copy not present in target file | Likely a thin wrapper `page.tsx`; pass `--target` to the real component or i18n dictionary |
-| `is not in the candidate set` | Model picked a file outside `targets` (rejected) | Pass `--target` explicitly |
-| `cwd の外を指しています` | `--target` is an absolute path outside cwd | Use a path inside the repo |
-| (hangs, no output) | `patch` is prompting interactively | Always pass `--suggestion <n>` (and `--target`) |
+`heatmapx patch` always prints retirement guidance and exits 1. There is no fix — the flow is now: `heatmapx data` → you (the AI agent) analyze → Edit the code → PR.
 
-## Applying the patch / opening the PR (Claude's `git`/`gh` step)
-
-This CLI does not create PRs. After `git apply <patch_path>`:
+## Applying the change / opening the PR (Claude's `git`/`gh` step)
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `git apply` fails (`patch does not apply`) | File changed since analysis | Re-run `analyze` → `patch` against current code |
-| working tree dirty before applying | Uncommitted changes | Ask the user; `git stash` or commit first |
+| working tree dirty before editing | Uncommitted changes | Ask the user; `git stash` or commit first |
 | `gh: command not found` | GitHub CLI not installed | https://cli.github.com |
 | `gh auth status` not logged in | `gh` not authenticated | `gh auth login` |
 | origin is not GitHub | PR target not on GitHub | Push the branch and open the PR manually |

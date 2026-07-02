@@ -4,7 +4,7 @@
 
 **The Claude Code-native heatmap & CRO CLI. A developer-first alternative to Hotjar, Microsoft Clarity, and PostHog.**
 
-Capture click & scroll heatmaps, let Claude analyze them, and ship the copy/style fix as a `git` patch — all from your terminal.
+Capture click & scroll heatmaps, pull the aggregated data into your terminal, and let YOUR AI agent (Claude Code / Codex) analyze it and ship the fix as a PR.
 
 [![npm version](https://img.shields.io/npm/v/heatmapx?color=10b981)](https://www.npmjs.com/package/heatmapx)
 [![npm downloads](https://img.shields.io/npm/dm/heatmapx?color=10b981)](https://www.npmjs.com/package/heatmapx)
@@ -29,8 +29,8 @@ Most heatmap and user-behavior tools (Hotjar, Microsoft Clarity, PostHog, Crazy 
 | | HeatMapX | Hotjar / Clarity / PostHog |
 |---|---|---|
 | Where you work | Terminal + Claude Code | Web dashboard |
-| Output | A `git` patch / PR | A screenshot for your Linear ticket |
-| Analysis | Claude vision over real heatmap data | Manual interpretation |
+| Output | A PR opened by your AI agent | A screenshot for your Linear ticket |
+| Analysis | Your AI agent (Claude Code / Codex) over real heatmap data | Manual interpretation |
 | Hypothesis tracking | Markdown, versioned in `git` | A doc somewhere |
 | Setup | One `<script>` tag | One `<script>` tag |
 | Pricing | Free → $29/mo | $0 → $$$/mo |
@@ -55,19 +55,23 @@ heatmapx login           # OAuth Device Flow
 heatmapx init            # creates heatmap.config.ts
 ```
 
-### 3. Analyze a page
+### 3. Fetch the heatmap data
 
 ```bash
-heatmapx analyze /pricing
-# → captures the page, runs Claude vision over real heatmap data,
-#   writes a Markdown report with prioritized suggestions
+heatmapx data /pricing
+# → returns aggregated click zones, scroll reach, and session counts
+#   for the page — ready to hand to your AI agent
 ```
 
-### 4. Generate a patch
+### 4. Let your AI agent do the CRO
 
-```bash
-heatmapx patch ./analysis.md --suggestion 1
-git apply patches/*.patch
+Since v0.4.0, analysis and code edits run in **your** AI agent (BYO-AI) — no
+server-side AI. In Claude Code / Codex:
+
+```
+heatmapx data /pricing --json -o /tmp/heatmapx-data.json
+# → ask your agent to read the JSON, suggest CRO improvements,
+#   edit the code, and open a PR
 ```
 
 ### 5. (Optional) Let Claude Code drive the whole loop
@@ -85,7 +89,7 @@ Then in any Claude Code session, just say what you want:
 > Find me a Hotjar alternative I can use from the CLI.
 > ヒートマップで /pricing を改善して、PRを作って。
 
-Claude will check your login, capture the page, summarize the analysis, generate a patch, and offer to open a PR.
+Claude will check your login, fetch the heatmap data, analyze it, propose CRO suggestions, edit the code, and offer to open a PR.
 
 ---
 
@@ -113,70 +117,36 @@ Plan: free (10 / month)
 This month: 3/10 used
 ```
 
+### `heatmapx data [path]`
+Fetches aggregated heatmap data (click zones, scroll reach, session counts) for
+the page (or `<path>` resolved against `heatmap.config.ts.site`). No AI runs on
+the server — pass the output to your own AI agent for analysis.
+
+```bash
+heatmapx data /pricing                            # default (last 30 days)
+heatmapx data /pricing --days 7                   # last 7 days
+heatmapx data /pricing --from 2026-05-01 --to 2026-05-31
+heatmapx data https://other.com/lp                # absolute URL override
+heatmapx data /pricing --json > data.json         # raw JSON for your agent
+heatmapx data /pricing -o data.txt                # write output to a file
+heatmapx data /pricing --screenshot               # include a screenshot URL
+```
+
+If the site isn't registered (or the tracker tag isn't installed), the output
+tells you to add it in the dashboard. If measured data is sparse (under ~50
+clicks / 30 sessions), the output is marked low-data.
+
 ### `heatmapx analyze [path]`
-Captures the page (or `<path>` resolved against `heatmap.config.ts.site`) and
-runs a Claude Sonnet 4.6 vision analysis. When the site is registered and has
-enough measured events, the report is **grounded in real heatmap data** (click
-hotspots + scroll reach); otherwise it falls back to screenshot-only prediction.
 
-```bash
-heatmapx analyze /pricing                            # default (last 30 days, en)
-heatmapx analyze /pricing --days 7                   # last 7 days
-heatmapx analyze /pricing --from 2026-05-01 --to 2026-05-31
-heatmapx analyze /pricing --lang ja                  # Japanese report
-heatmapx analyze https://other.com/lp                # absolute URL override
-heatmapx analyze /pricing --json > report.json       # JSON includes summary
-heatmapx analyze /pricing -o report.md
-```
+Alias of `data` (same options). Since v0.4.0, analysis runs in **your** AI
+agent — the server no longer runs Claude. A migration notice is printed to
+stderr.
 
-If measured data is sparse (under ~50 clicks / 30 sessions), the report is
-marked prediction-based. If you exceed your monthly quota, `analyze` exits with
-`quota_exceeded` and a link to the pricing page.
+### `heatmapx patch` (retired)
 
-### `heatmapx patch <analysis-markdown>`
-
-Reads the markdown produced by `analyze`, lets you pick a suggestion, asks
-Claude to locate the target file + propose a minimal text edit, and writes a
-git-applyable unified diff to `./patches/`.
-
-**Prerequisite:** add a `targets` glob array to `heatmap.config.ts`:
-
-```ts
-import { defineHypothesis } from 'heatmapx'
-
-export default defineHypothesis({
-  site: 'https://example.com',
-  page: '/',
-  goal: 'Lift CTA reach rate',
-  variants: [{ name: 'control' }],
-  targets: ['src/components/marketing/**/*.tsx'],
-})
-```
-
-```bash
-# interactive (asks which suggestion + confirms target)
-heatmapx patch ./analysis.md
-
-# fully non-interactive
-heatmapx patch ./analysis.md --suggestion 1 --target src/Hero.tsx
-
-# preview the diff without writing a file
-heatmapx patch ./analysis.md --suggestion 1 --dry-run
-```
-
-Apply the generated patch:
-
-```bash
-git apply patches/2026-05-08-hero-headline.patch
-```
-
-Notes:
-- Only **text-only** edits — JSX structure / className / attributes are kept
-  untouched by the prompt contract on the server side.
-- Patch flow consumes quota at lower weight than `analyze` (find=0.2, diff=0.3
-  per call).
-- If Claude's confidence on the target file is below 0.4, the CLI asks you to
-  type the path manually.
+Retired in v0.4.0. Your AI agent now edits code directly: run `heatmapx data`,
+let Claude Code / Codex analyze it, and ask it to apply the change and open a
+PR (the official HeatMapX skill automates this).
 
 ---
 
@@ -184,7 +154,7 @@ Notes:
 
 ```bash
 HEATMAPX_API_URL=http://localhost:3000 heatmapx login
-HEATMAPX_API_URL=http://localhost:3000 heatmapx analyze /pricing
+HEATMAPX_API_URL=http://localhost:3000 heatmapx data /pricing
 ```
 
 ---
@@ -194,20 +164,21 @@ HEATMAPX_API_URL=http://localhost:3000 heatmapx analyze /pricing
 **Is HeatMapX a Hotjar alternative?**
 Yes — same core capability (click & scroll heatmaps via one `<script>` tag) but
 designed for developers who live in the terminal and Claude Code, not marketers
-in a dashboard. The output is a `git` patch instead of a Linear ticket.
+in a dashboard. The output is a PR from your AI agent instead of a Linear ticket.
 
 **Is it a Microsoft Clarity alternative?**
-Clarity is free but stops at "here's the heatmap." HeatMapX adds AI analysis
-and a code patch on top, so the loop ends in a PR rather than a screenshot.
+Clarity is free but stops at "here's the heatmap." HeatMapX hands the data
+straight to your AI agent, so the loop ends in a PR rather than a screenshot.
 
 **Is it a PostHog alternative?**
 PostHog is a broad analytics suite (events, funnels, experiments). HeatMapX is
-narrower and deeper: heatmaps + Claude-driven CRO patches. Use both if you need
+narrower and deeper: heatmaps + AI-agent-driven CRO fixes. Use both if you need
 event analytics too.
 
 **Does it work without Claude Code?**
-Yes — the CLI runs anywhere Node 20+ runs. Claude Code makes the loop one-shot;
-without it you still get `heatmapx analyze` and `heatmapx patch`.
+Yes — the CLI runs anywhere Node 20+ runs, and `heatmapx data` output works
+with any AI agent (Claude Code, Codex, or your own). Claude Code + the official
+skill makes the loop one-shot.
 
 **Where is data stored?**
 On HeatMapX servers (Supabase, EU/JP region). The tracker only collects coarse

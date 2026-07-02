@@ -1,35 +1,48 @@
-import { describe, it, expect } from 'vitest'
-import { buildPeriod, formatSummaryLines } from '../analyze'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Command } from 'commander'
 
-describe('buildPeriod', () => {
-  it('prefers from/to when both present', () => {
-    expect(buildPeriod({ days: '30', from: '2026-05-01', to: '2026-05-31' }))
-      .toEqual({ from: '2026-05-01', to: '2026-05-31' })
-  })
-  it('uses days when from/to absent', () => {
-    expect(buildPeriod({ days: '7' })).toEqual({ days: 7 })
-  })
-  it('returns undefined when nothing provided', () => {
-    expect(buildPeriod({})).toBeUndefined()
+vi.mock('../data', () => ({
+  runDataCli: vi.fn(),
+  handleDataError: vi.fn(),
+}))
+
+import { runDataCli, handleDataError } from '../data'
+import { analyzeCommand, ANALYZE_ALIAS_NOTICE } from '../analyze'
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
+
+describe('ANALYZE_ALIAS_NOTICE', () => {
+  it('tells the user analysis now runs in their AI agent', () => {
+    expect(ANALYZE_ALIAS_NOTICE).toContain('since v0.4.0')
+    expect(ANALYZE_ALIAS_NOTICE).toContain('YOUR AI agent')
+    expect(ANALYZE_ALIAS_NOTICE).toContain("same as 'heatmapx data'")
   })
 })
 
-describe('formatSummaryLines', () => {
-  const base = {
-    period: { from: '', to: '' },
-    clickZones: [{ row: 'hero', cols: [8, 41, 3] }],
-    totalClicks: 1240,
-    totalSessions: 980,
-    scrollReach: { 25: 92, 50: 68, 75: 35, 100: 14 },
-    lowData: false,
-  }
-  it('renders click and scroll lines', () => {
-    const out = formatSummaryLines(base).join('\n')
-    expect(out).toContain('1,240 clicks')
-    expect(out).toContain('75%')
+describe('analyzeCommand option surface', () => {
+  it('registers the same options as data (no --lang)', () => {
+    const program = new Command()
+    analyzeCommand(program)
+    const cmd = program.commands.find((c) => c.name() === 'analyze')
+    expect(cmd).toBeDefined()
+    const flags = cmd!.options.map((o) => o.long)
+    expect(flags).toEqual(
+      expect.arrayContaining(['--json', '--output', '--days', '--from', '--to', '--screenshot']),
+    )
+    expect(flags).not.toContain('--lang')
   })
-  it('adds low-data warning when lowData', () => {
-    const out = formatSummaryLines({ ...base, lowData: true }).join('\n')
-    expect(out).toMatch(/Low data/)
+
+  it('delegates errors from runDataCli to handleDataError', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const err = new Error('rate_limited')
+    vi.mocked(runDataCli).mockRejectedValue(err)
+    const program = new Command()
+    program.exitOverride()
+    analyzeCommand(program)
+    await program.parseAsync(['node', 'heatmapx', 'analyze', '/pricing'])
+    expect(handleDataError).toHaveBeenCalledWith(err)
+    vi.mocked(console.error).mockRestore()
   })
 })
