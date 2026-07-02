@@ -4,6 +4,7 @@ import {
   authPoll,
   baseUrl,
   cliAnalyze,
+  fetchData,
   getUsage,
   patchFindFile,
   patchGenerateDiff,
@@ -120,6 +121,101 @@ describe('cliAnalyze', () => {
     await expect(
       cliAnalyze('hmx_live_xxx', { url: 'https://example.com', hypothesis: { goal: 'g', variants: [{ name: 'control' }] } }),
     ).rejects.toThrow('http_500')
+  })
+})
+
+describe('fetchData', () => {
+  const sampleBody = {
+    url: 'https://example.com/pricing',
+    period: { from: '2026-06-01', to: '2026-06-30' },
+    site_found: true,
+    summary: {
+      period: { from: '2026-06-01', to: '2026-06-30' },
+      clickZones: [{ row: 'hero', cols: [8, 41, 3] }],
+      totalClicks: 1240,
+      scrollReach: { 25: 92, 50: 68, 75: 35, 100: 14 },
+      totalSessions: 980,
+      lowData: false,
+    },
+  }
+
+  it('POSTs to /api/cli/data with bearer auth and returns parsed body', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => sampleBody,
+    })
+    global.fetch = fetchMock as never
+    const out = await fetchData('hmx_live_xxx', { url: 'https://example.com/pricing' })
+    expect(out.site_found).toBe(true)
+    expect(out.summary?.totalClicks).toBe(1240)
+    const callArgs = fetchMock.mock.calls[0]
+    expect(callArgs[0]).toBe('https://heatmapx.com/api/cli/data')
+    expect(callArgs[1].method).toBe('POST')
+    expect(callArgs[1].headers['Authorization']).toBe('Bearer hmx_live_xxx')
+  })
+
+  it('sends period and include_screenshot in the request body', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ...sampleBody, screenshot_url: 'https://cdn/s.png' }),
+    })
+    global.fetch = fetchMock as never
+    const out = await fetchData('hmx_live_xxx', {
+      url: 'https://example.com/pricing',
+      period: { days: 7 },
+      include_screenshot: true,
+    })
+    expect(out.screenshot_url).toBe('https://cdn/s.png')
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(body.period).toEqual({ days: 7 })
+    expect(body.include_screenshot).toBe(true)
+  })
+
+  it('omits period and include_screenshot when not provided', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ...sampleBody, site_found: false, summary: null }),
+    })
+    global.fetch = fetchMock as never
+    const out = await fetchData('hmx_live_xxx', { url: 'https://example.com/pricing' })
+    expect(out.site_found).toBe(false)
+    expect(out.summary).toBeNull()
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(body.period).toBeUndefined()
+    expect(body.include_screenshot).toBeUndefined()
+  })
+
+  it('throws with error code on 401', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: 'invalid_api_key' }),
+    }) as never
+    await expect(fetchData('bad', { url: 'https://example.com' })).rejects.toThrow(
+      'invalid_api_key',
+    )
+  })
+
+  it('surfaces server message alongside error code (422 invalid_url)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({ error: 'invalid_url', message: 'url must be absolute http(s)' }),
+    }) as never
+    await expect(fetchData('hmx_live_xxx', { url: 'ftp://x' })).rejects.toThrow(
+      'invalid_url: url must be absolute http(s)',
+    )
+  })
+
+  it('throws http_<status> when error body has no error code', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 502,
+      json: async () => ({}),
+    }) as never
+    await expect(fetchData('hmx_live_xxx', { url: 'https://example.com' })).rejects.toThrow(
+      'http_502',
+    )
   })
 })
 

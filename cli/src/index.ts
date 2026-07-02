@@ -8,6 +8,7 @@ import { loginCommand } from './commands/login'
 import { logoutCommand } from './commands/logout'
 import { whoamiCommand } from './commands/whoami'
 import { analyzeCommand } from './commands/analyze'
+import { dataCommand } from './commands/data'
 import { patchCommand } from './commands/patch'
 
 // バージョンは package.json を唯一のソースにする（ハードコードしてズレるのを防ぐ）
@@ -27,6 +28,7 @@ configCommand(program)
 loginCommand(program)
 logoutCommand(program)
 whoamiCommand(program)
+dataCommand(program)
 analyzeCommand(program)
 patchCommand(program)
 

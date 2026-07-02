@@ -78,6 +78,33 @@ export async function cliAnalyze(
   return res.json() as Promise<AnalyzeResponseBody>
 }
 
+export interface DataResponse {
+  url: string
+  period: { from: string; to: string }
+  site_found: boolean
+  summary: HeatmapSummaryDTO | null
+  screenshot_url?: string
+}
+
+export async function fetchData(
+  apiKey: string,
+  body: {
+    url: string
+    period?: AnalyzePeriod
+    include_screenshot?: boolean
+  },
+): Promise<DataResponse> {
+  const res = await fetch(`${baseUrl()}/api/cli/data`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    throw new Error(await readApiError(res))
+  }
+  return res.json() as Promise<DataResponse>
+}
+
 // Format `{error, message}` API responses as `<error>: <message>` so the CLI
 // can surface server-side reasons (e.g. why patch_failed) instead of just the
 // generic error code.
