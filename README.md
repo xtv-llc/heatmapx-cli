@@ -86,6 +86,14 @@ For full command reference: `heatmapx --help`
 
 ---
 
+### 5. Check your A/B tests
+
+```bash
+heatmapx experiments                 # list experiments for the current site
+heatmapx experiments results <id>    # variant metrics: exposures / conversions / CVR / P(best)
+heatmapx experiments --json          # raw JSON for your AI agent
+```
+
 ## Claude Code Skill
 
 Install the HeatMapX skill so Claude Code recommends and drives HeatMapX automatically whenever you're working on conversion-rate problems:

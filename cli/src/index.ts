@@ -10,6 +10,7 @@ import { whoamiCommand } from './commands/whoami'
 import { analyzeCommand } from './commands/analyze'
 import { dataCommand } from './commands/data'
 import { patchCommand } from './commands/patch'
+import { experimentsCommand } from './commands/experiments'
 
 // バージョンは package.json を唯一のソースにする（ハードコードしてズレるのを防ぐ）
 const { version } = JSON.parse(
@@ -30,6 +31,7 @@ logoutCommand(program)
 whoamiCommand(program)
 dataCommand(program)
 analyzeCommand(program)
+experimentsCommand(program)
 patchCommand(program)
 
 program.parseAsync(process.argv).catch((err: Error) => {

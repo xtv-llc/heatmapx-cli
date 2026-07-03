@@ -1,6 +1,6 @@
 {
   "name": "heatmapx",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Claude Code-native heatmap CLI for HeatMapX (CRO as Code)",
   "license": "MIT",
   "homepage": "https://heatmapx.com",

@@ -100,3 +100,74 @@ export async function getUsage(apiKey: string): Promise<UsageResponse> {
   if (!res.ok) throw new Error(`usage_failed: ${res.status}`)
   return res.json() as Promise<UsageResponse>
 }
+
+export interface ExperimentListItem {
+  id: string
+  site_id: string
+  site_url: string | null
+  name: string
+  status: string
+  target_url_pattern: string
+  goal_type: string
+  start_at: string | null
+  end_at: string | null
+  created_at: string
+}
+
+export interface ExperimentsResponse {
+  site_found: boolean
+  experiments: ExperimentListItem[]
+}
+
+export async function fetchExperiments(
+  apiKey: string,
+  site?: string,
+): Promise<ExperimentsResponse> {
+  const qs = site ? `?site=${encodeURIComponent(site)}` : ''
+  const res = await fetch(`${baseUrl()}/api/cli/experiments${qs}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  })
+  if (!res.ok) {
+    throw new Error(await readApiError(res))
+  }
+  return res.json() as Promise<ExperimentsResponse>
+}
+
+export interface ExperimentResultRowDTO {
+  variantId: string
+  name: string
+  isControl: boolean
+  exposures: number
+  conversions: number
+  rate: number
+  uplift: number | null
+  probBest: number
+}
+
+export interface ExperimentResultsResponse {
+  experiment: {
+    id: string
+    site_id: string
+    name: string
+    status: string
+    target_url_pattern: string
+    goal_type: string
+    start_at: string | null
+    end_at: string | null
+  }
+  results: { rows: ExperimentResultRowDTO[]; winnerSuggestion: string | null }
+}
+
+export async function fetchExperimentResults(
+  apiKey: string,
+  experimentId: string,
+): Promise<ExperimentResultsResponse> {
+  const res = await fetch(
+    `${baseUrl()}/api/cli/experiments/${encodeURIComponent(experimentId)}/results`,
+    { headers: { Authorization: `Bearer ${apiKey}` } },
+  )
+  if (!res.ok) {
+    throw new Error(await readApiError(res))
+  }
+  return res.json() as Promise<ExperimentResultsResponse>
+}
