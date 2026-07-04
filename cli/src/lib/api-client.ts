@@ -171,3 +171,51 @@ export async function fetchExperimentResults(
   }
   return res.json() as Promise<ExperimentResultsResponse>
 }
+
+export interface CreateSiteResponse {
+  site: { id: string; name: string; url: string; api_key: string }
+  tracker_snippet: string
+}
+
+export async function createSite(
+  apiKey: string,
+  body: { url: string; name?: string },
+): Promise<CreateSiteResponse> {
+  const res = await fetch(`${baseUrl()}/api/cli/sites`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(await readApiError(res))
+  return res.json() as Promise<CreateSiteResponse>
+}
+
+export async function createExperiment(
+  apiKey: string,
+  body: Record<string, unknown>,
+): Promise<{ experiment: { id: string; status: string; name: string } }> {
+  const res = await fetch(`${baseUrl()}/api/cli/experiments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(await readApiError(res))
+  return res.json() as Promise<{ experiment: { id: string; status: string; name: string } }>
+}
+
+export async function setExperimentStatus(
+  apiKey: string,
+  experimentId: string,
+  status: 'running' | 'paused' | 'stopped',
+): Promise<{ experiment: { id: string; name: string; status: string } }> {
+  const res = await fetch(
+    `${baseUrl()}/api/cli/experiments/${encodeURIComponent(experimentId)}/status`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ status }),
+    },
+  )
+  if (!res.ok) throw new Error(await readApiError(res))
+  return res.json() as Promise<{ experiment: { id: string; name: string; status: string } }>
+}

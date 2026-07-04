@@ -2,9 +2,13 @@ import type { Command } from 'commander'
 import { join } from 'node:path'
 import { loadConfig } from '../lib/config-loader'
 import { defaultCredentialsPath, loadCredentials } from '../lib/credentials'
+import { readFileSync } from 'node:fs'
+import { createInterface } from 'node:readline'
 import {
   fetchExperiments,
   fetchExperimentResults,
+  createExperiment,
+  setExperimentStatus,
   type ExperimentsResponse,
   type ExperimentResultsResponse,
 } from '../lib/api-client'
@@ -135,4 +139,74 @@ export function experimentsCommand(program: Command): void {
         process.exitCode = 1
       }
     })
+
+  cmd
+    .command('create')
+    .description('Create an A/B experiment as a draft from a JSON file (same schema as the MCP create_experiment tool)')
+    .requiredOption('--file <path>', 'JSON file with {site_id, name, target_path, goal, variants, ...}')
+    .option('--json', 'output raw JSON')
+    .action(async (flags: { file: string; json?: boolean }) => {
+      try {
+        const apiKey = requireApiKeyPublic()
+        const body = JSON.parse(readFileSync(flags.file, 'utf8')) as Record<string, unknown>
+        const data = await createExperiment(apiKey, body)
+        console.log(
+          flags.json
+            ? JSON.stringify(data, null, 2)
+            : `Draft created: ${data.experiment.name} (id: ${data.experiment.id})\n→ Start delivery with: heatmapx experiments start ${data.experiment.id}`,
+        )
+      } catch (e) {
+        console.error(`[heatmapx] ${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  for (const [sub, status, warning] of [
+    ['start', 'running', 'This will serve variants to REAL visitors.'],
+    ['pause', 'paused', 'Delivery pauses (can be resumed with start).'],
+    ['stop', 'stopped', 'This is PERMANENT — a stopped experiment cannot be restarted.'],
+  ] as const) {
+    cmd
+      .command(`${sub} <experimentId>`)
+      .description(`${sub} an experiment (${warning})`)
+      .option('--yes', 'skip confirmation prompt')
+      .option('--json', 'output raw JSON')
+      .action(async (experimentId: string, flags: { yes?: boolean; json?: boolean }) => {
+        try {
+          if (!flags.yes) {
+            const ok = await confirmPrompt(`${warning} ${sub} experiment ${experimentId}? [y/N] `)
+            if (!ok) {
+              console.error('[heatmapx] cancelled')
+              return
+            }
+          }
+          const apiKey = requireApiKeyPublic()
+          const data = await setExperimentStatus(apiKey, experimentId, status)
+          console.log(
+            flags.json
+              ? JSON.stringify(data, null, 2)
+              : `${data.experiment.name} is now ${data.experiment.status}.`,
+          )
+        } catch (e) {
+          console.error(`[heatmapx] ${(e as Error).message}`)
+          process.exitCode = 1
+        }
+      })
+  }
+}
+
+function requireApiKeyPublic(): string {
+  const creds = loadCredentials(defaultCredentialsPath())
+  if (!creds) throw new Error('Not logged in. Run `heatmapx login`.')
+  return creds.api_key
+}
+
+function confirmPrompt(question: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const rl = createInterface({ input: process.stdin, output: process.stderr })
+    rl.question(question, (answer) => {
+      rl.close()
+      resolve(/^y(es)?$/i.test(answer.trim()))
+    })
+  })
 }
