@@ -190,6 +190,22 @@ export async function createSite(
   return res.json() as Promise<CreateSiteResponse>
 }
 
+export interface SiteListItem {
+  id: string
+  name: string
+  url: string
+  created_at: string
+  first_event_at: string | null
+}
+
+export async function listSites(apiKey: string): Promise<{ sites: SiteListItem[] }> {
+  const res = await fetch(`${baseUrl()}/api/cli/sites`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  })
+  if (!res.ok) throw new Error(await readApiError(res))
+  return res.json() as Promise<{ sites: SiteListItem[] }>
+}
+
 export async function createExperiment(
   apiKey: string,
   body: Record<string, unknown>,

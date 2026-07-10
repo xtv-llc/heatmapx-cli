@@ -1,6 +1,15 @@
 import type { Command } from 'commander'
 import { defaultCredentialsPath, loadCredentials } from '../lib/credentials'
-import { createSite, type CreateSiteResponse } from '../lib/api-client'
+import {
+  createSite,
+  listSites,
+  type CreateSiteResponse,
+  type SiteListItem,
+} from '../lib/api-client'
+
+function stripProtocol(u: string): string {
+  return u.replace(/^https?:\/\//, '').replace(/\/$/, '')
+}
 
 export interface SitesAddOptions {
   credentialsPath?: string
@@ -33,8 +42,62 @@ export async function runSitesAdd(
   return { data, text }
 }
 
+export function formatSitesList(sites: SiteListItem[]): string {
+  if (sites.length === 0) {
+    return 'No sites yet. Register one with `heatmapx sites add <url>`.'
+  }
+  const lines = sites.map((s) => {
+    const status = s.first_event_at ? 'receiving' : 'waiting for data'
+    return [`• ${s.name}  (${stripProtocol(s.url)})`, `  id: ${s.id}   status: ${status}`].join('\n')
+  })
+  return [`Your sites (${sites.length}):`, ...lines].join('\n')
+}
+
+export interface SitesListOptions {
+  credentialsPath?: string
+  json?: boolean
+}
+
+export async function runSitesList(
+  opts: SitesListOptions = {},
+): Promise<{ sites: SiteListItem[]; text: string }> {
+  const creds = loadCredentials(opts.credentialsPath ?? defaultCredentialsPath())
+  if (!creds) throw new Error('Not logged in. Run `heatmapx login`.')
+
+  const { sites } = await listSites(creds.api_key)
+  const text = opts.json ? JSON.stringify(sites, null, 2) : formatSitesList(sites)
+  return { sites, text }
+}
+
 export function sitesCommand(program: Command): void {
-  const cmd = program.command('sites').description('Manage tracked sites')
+  const cmd = program.command('sites').description('List and manage tracked sites')
+
+  // Bare `heatmapx sites` lists sites (friendly default instead of showing help).
+  cmd
+    .option('--json', 'output raw JSON')
+    .action(async (flags: { json?: boolean }) => {
+      try {
+        const { text } = await runSitesList({ json: flags.json })
+        console.log(text)
+      } catch (e) {
+        console.error(`[heatmapx] ${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  cmd
+    .command('list')
+    .description('List your registered sites')
+    .option('--json', 'output raw JSON')
+    .action(async (flags: { json?: boolean }) => {
+      try {
+        const { text } = await runSitesList({ json: flags.json })
+        console.log(text)
+      } catch (e) {
+        console.error(`[heatmapx] ${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
 
   cmd
     .command('add <url>')
