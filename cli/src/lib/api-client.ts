@@ -48,10 +48,15 @@ export interface HeatmapSummaryDTO {
   lowData: boolean
 }
 
+/** Custom tag filter (key → value). Keys are lower-cased by the server. */
+export type TagFilter = Record<string, string>
+
 export interface DataResponse {
   url: string
   period: { from: string; to: string }
   site_found: boolean
+  /** Echoed back when the request filtered by custom tags */
+  tags?: TagFilter
   summary: HeatmapSummaryDTO | null
   screenshot_url?: string
 }
@@ -62,6 +67,7 @@ export async function fetchData(
     url: string
     period?: AnalyzePeriod
     include_screenshot?: boolean
+    tags?: TagFilter
   },
 ): Promise<DataResponse> {
   const res = await fetch(`${baseUrl()}/api/cli/data`, {
@@ -142,6 +148,15 @@ export interface ExperimentResultRowDTO {
   rate: number
   uplift: number | null
   probBest: number
+  /** Live-site preview URL (?hmx_preview=...) — null when the site URL is unknown */
+  preview_url?: string | null
+}
+
+/** How far the experiment is from the minimum sample for a verdict (null = reached). */
+export interface SampleGuidanceDTO {
+  remainingExposures: number
+  /** Estimated days until the minimum sample is reached; null when the pace is unknown */
+  estimatedDays: number | null
 }
 
 export interface ExperimentResultsResponse {
@@ -155,7 +170,12 @@ export interface ExperimentResultsResponse {
     start_at: string | null
     end_at: string | null
   }
-  results: { rows: ExperimentResultRowDTO[]; winnerSuggestion: string | null }
+  results: {
+    rows: ExperimentResultRowDTO[]
+    winnerSuggestion: string | null
+    comparisonEnabled?: boolean
+    sampleGuidance?: SampleGuidanceDTO | null
+  }
 }
 
 export async function fetchExperimentResults(
