@@ -61,12 +61,23 @@ export function formatResultsOutput(resp: ExperimentResultsResponse): string {
     lines.push(
       ` ${r.isControl ? '(control) ' : ''}${r.name}: ${r.conversions}/${r.exposures} cv (${rate}%)${upliftStr}  P(best) ${prob}%`,
     )
+    if (r.preview_url) lines.push(`    preview: ${r.preview_url}`)
   }
   if (resp.results.winnerSuggestion) {
     const winner = resp.results.rows.find((r) => r.variantId === resp.results.winnerSuggestion)
     lines.push(` ★ Suggested winner: ${winner?.name ?? resp.results.winnerSuggestion}`)
   } else {
     lines.push(' (no statistically confident winner yet)')
+    const g = resp.results.sampleGuidance
+    if (g && g.remainingExposures > 0) {
+      const days =
+        g.estimatedDays == null
+          ? ''
+          : ` — about ${g.estimatedDays} more day${g.estimatedDays === 1 ? '' : 's'} at the current pace`
+      lines.push(
+        ` Needs ${g.remainingExposures.toLocaleString('en-US')} more exposures to reach the minimum sample${days}`,
+      )
+    }
   }
   lines.push('')
   lines.push('→ Pass this data to your AI agent (Claude Code / Codex) for interpretation.')

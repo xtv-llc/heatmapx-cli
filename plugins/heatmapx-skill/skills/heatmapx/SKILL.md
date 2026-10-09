@@ -26,7 +26,7 @@ Run via Bash, in order. If one fails, stop and give the user the fix, then conti
 2. Run: `heatmapx data <path> --json -o /tmp/heatmapx-data-$(date +%s).json` (takes seconds).
 3. Read the JSON with the Read tool. Shape: `{ url, period: {from,to}, site_found, summary: { clickZones, totalClicks, scrollReach, totalSessions, lowData } | null, screenshot_url? }`.
 
-Period flags when the user asks: `--days <n>`, or `--from <date> --to <date>`. Add `--screenshot` for a page screenshot URL.
+Period flags when the user asks: `--days <n>`, or `--from <date> --to <date>`. Add `--screenshot` for a page screenshot URL. To compare a segment (e.g. one variant of the site's own A/B test, logged-in users, a traffic source), add `--tag key=value` (repeatable) — it only includes sessions the site tagged via `hmx('set', key, value)`.
 
 ## 2. Analyze (your job)
 

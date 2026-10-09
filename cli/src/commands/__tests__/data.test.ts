@@ -17,7 +17,14 @@ vi.mock('../../lib/api-client', () => ({
 import { loadConfig } from '../../lib/config-loader'
 import { loadCredentials } from '../../lib/credentials'
 import { fetchData, type DataResponse } from '../../lib/api-client'
-import { runData, resolveUrl, buildPeriod, formatSummaryLines, formatDataOutput } from '../data'
+import {
+  runData,
+  resolveUrl,
+  buildPeriod,
+  parseTagFlags,
+  formatSummaryLines,
+  formatDataOutput,
+} from '../data'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -73,6 +80,28 @@ describe('buildPeriod', () => {
   })
 })
 
+describe('parseTagFlags', () => {
+  it('returns undefined when no --tag given', () => {
+    expect(parseTagFlags(undefined)).toBeUndefined()
+    expect(parseTagFlags([])).toBeUndefined()
+  })
+  it('parses key=value and key:value, lower-casing keys', () => {
+    expect(parseTagFlags(['AB_Variant=B', 'plan:pro'])).toEqual({ ab_variant: 'B', plan: 'pro' })
+  })
+  it('keeps the value verbatim after the first separator', () => {
+    expect(parseTagFlags(['src=utm:google'])).toEqual({ src: 'utm:google' })
+  })
+  it('rejects flags without a separator or with an empty key/value', () => {
+    expect(() => parseTagFlags(['ab_variant'])).toThrow(/expected key=value/)
+    expect(() => parseTagFlags(['=B'])).toThrow(/expected key=value/)
+    expect(() => parseTagFlags(['ab_variant='])).toThrow(/expected key=value/)
+  })
+  it('rejects conflicting values for the same key', () => {
+    expect(() => parseTagFlags(['ab_variant=A', 'ab_variant=B'])).toThrow(/conflicting/)
+    expect(parseTagFlags(['ab_variant=B', 'ab_variant=B'])).toEqual({ ab_variant: 'B' })
+  })
+})
+
 describe('formatSummaryLines', () => {
   it('renders click and scroll lines', () => {
     const out = formatSummaryLines(sampleSummary).join('\n')
@@ -107,6 +136,13 @@ describe('formatDataOutput', () => {
       screenshot_url: 'https://cdn.heatmapx.com/s.png',
     })
     expect(out).toContain('Screenshot: https://cdn.heatmapx.com/s.png')
+  })
+  it('shows the tag filter when the response was filtered', () => {
+    const out = formatDataOutput({ ...sampleResponse, tags: { ab_variant: 'B', plan: 'pro' } })
+    expect(out).toContain('Filtered by tags: ab_variant=B, plan=pro')
+  })
+  it('omits the tag line when no filter was applied', () => {
+    expect(formatDataOutput(sampleResponse)).not.toContain('Filtered by tags')
   })
 })
 
@@ -148,6 +184,29 @@ describe('runData', () => {
       period: { days: 7 },
       include_screenshot: true,
     })
+  })
+
+  it('passes the tag filter to the API and omits it when absent', async () => {
+    vi.mocked(loadCredentials).mockReturnValue({ api_key: 'hmx_live_x', email: 'a@b.com' })
+    vi.mocked(loadConfig).mockResolvedValue(sampleConfig)
+    vi.mocked(fetchData).mockResolvedValue({ ...sampleResponse, tags: { ab_variant: 'B' } })
+    const cwd = mkdtempSync(join(tmpdir(), 'hmx-data-'))
+    const messages: string[] = []
+    const r = await runData({
+      cwd,
+      tags: { ab_variant: 'B' },
+      onMessage: (m) => messages.push(m),
+    })
+    expect(fetchData).toHaveBeenCalledWith('hmx_live_x', {
+      url: 'https://example.com/pricing',
+      period: undefined,
+      include_screenshot: undefined,
+      tags: { ab_variant: 'B' },
+    })
+    expect(messages.join('\n')).toContain('tags: ab_variant=B')
+    expect(r.text).toContain('Filtered by tags: ab_variant=B')
+    const call = vi.mocked(fetchData).mock.calls[0][1]
+    expect(call).toHaveProperty('tags')
   })
 
   it('returns raw JSON text when json option set', async () => {

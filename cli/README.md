@@ -130,11 +130,36 @@ heatmapx data https://other.com/lp                # absolute URL override
 heatmapx data /pricing --json > data.json         # raw JSON for your agent
 heatmapx data /pricing -o data.txt                # write output to a file
 heatmapx data /pricing --screenshot               # include a screenshot URL
+heatmapx data /pricing --tag ab_variant=B         # only sessions tagged via hmx('set','ab_variant','B')
+heatmapx data /pricing --tag plan=pro --tag src=ads   # several tags = AND filter (max 10)
 ```
 
 If the site isn't registered (or the tracker tag isn't installed), the output
 tells you to add it in the dashboard. If measured data is sparse (under ~50
 clicks / 30 sessions), the output is marked low-data.
+
+### `heatmapx sites` / `sites list` / `sites add <url> [--name <name>]`
+
+Lists your registered sites, or registers a new one and prints the tracker
+snippet to paste before `</head>`. Add `--json` for raw output.
+
+### `heatmapx experiments [--site <url>]`
+
+Lists A/B experiments (status, target path, goal). Sub-commands:
+
+```bash
+heatmapx experiments results <id>        # exposures / conversions / CVR / uplift / P(best) per variant
+heatmapx experiments create --file exp.json   # draft from JSON (same schema as the MCP create_experiment tool)
+heatmapx experiments start <id>          # serve variants to real visitors (asks for confirmation; --yes to skip)
+heatmapx experiments pause <id>
+heatmapx experiments stop <id>           # permanent
+```
+
+`results` also prints a live-site **preview URL** per variant
+(`?hmx_preview=<experiment>:<variant>`) so you can eyeball a variant before
+starting, and — while no winner is confirmed yet — how many more exposures the
+test needs and an estimated number of days at the current pace. `--json`
+returns the same fields (`preview_url`, `sampleGuidance`).
 
 ### `heatmapx analyze [path]`
 

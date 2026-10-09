@@ -91,4 +91,55 @@ describe('formatResultsOutput', () => {
     }
     expect(formatResultsOutput(noWinner)).toContain('no statistically confident winner yet')
   })
+
+  it('パターンごとの実サイトプレビューURLを出す（nullは出さない）', () => {
+    const withPreview: ExperimentResultsResponse = {
+      ...resultsResp,
+      results: {
+        ...resultsResp.results,
+        rows: [
+          { ...resultsResp.results.rows[0], preview_url: 'https://cryptul.co.jp/pricing?hmx_preview=e1:v1' },
+          { ...resultsResp.results.rows[1], preview_url: null },
+        ],
+      },
+    }
+    const text = formatResultsOutput(withPreview)
+    expect(text).toContain('    preview: https://cryptul.co.jp/pricing?hmx_preview=e1:v1')
+    expect(text.match(/preview:/g)).toHaveLength(1)
+  })
+
+  it('判定未達のときは不足露出数と日数目安を出す', () => {
+    const pending: ExperimentResultsResponse = {
+      ...resultsResp,
+      results: {
+        ...resultsResp.results,
+        winnerSuggestion: null,
+        sampleGuidance: { remainingExposures: 1250, estimatedDays: 3 },
+      },
+    }
+    const text = formatResultsOutput(pending)
+    expect(text).toContain(
+      'Needs 1,250 more exposures to reach the minimum sample — about 3 more days at the current pace',
+    )
+  })
+
+  it('日数が推計できないときは露出数だけ出す／到達済み（null）なら何も出さない', () => {
+    const noPace: ExperimentResultsResponse = {
+      ...resultsResp,
+      results: {
+        ...resultsResp.results,
+        winnerSuggestion: null,
+        sampleGuidance: { remainingExposures: 80, estimatedDays: null },
+      },
+    }
+    const text = formatResultsOutput(noPace)
+    expect(text).toContain('Needs 80 more exposures to reach the minimum sample')
+    expect(text).not.toContain('at the current pace')
+
+    const reached: ExperimentResultsResponse = {
+      ...resultsResp,
+      results: { ...resultsResp.results, winnerSuggestion: null, sampleGuidance: null },
+    }
+    expect(formatResultsOutput(reached)).not.toContain('more exposures')
+  })
 })
