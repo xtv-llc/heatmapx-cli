@@ -73,7 +73,9 @@ export function sitesCommand(program: Command): void {
   const cmd = program.command('sites').description('List and manage tracked sites')
 
   // Bare `heatmapx sites` lists sites (friendly default instead of showing help).
+  // enablePositionalOptions: keep this --json from swallowing `sites list --json` / `sites add ... --json`.
   cmd
+    .enablePositionalOptions()
     .option('--json', 'output raw JSON')
     .action(async (flags: { json?: boolean }) => {
       try {

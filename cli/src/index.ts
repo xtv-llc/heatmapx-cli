@@ -24,6 +24,10 @@ program
   .name('heatmapx')
   .description('HeatMapX CLI — Claude Code-native heatmap analysis')
   .version(version)
+  // 親コマンド（experiments / sites）の --json が、サブコマンド側の --json を
+  // 横取りしないようにする（`experiments results <id> --json` が整形表示になる不具合の修正）。
+  // サブコマンドで enablePositionalOptions() を使うには root でも有効化が必要。
+  .enablePositionalOptions()
 
 initCommand(program)
 configCommand(program)
