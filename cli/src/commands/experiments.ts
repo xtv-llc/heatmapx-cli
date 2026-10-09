@@ -125,6 +125,9 @@ export function experimentsCommand(program: Command): void {
   const cmd = program
     .command('experiments')
     .description('List A/B experiments (use `experiments results <id>` for metrics)')
+    // own options (--site/--json) only before a sub-command, so `results <id> --json`
+    // reaches the sub-command instead of being consumed here
+    .enablePositionalOptions()
     .option('--site <url>', 'filter by site URL (defaults to heatmap.config.ts site)')
     .option('--json', 'output raw JSON')
     .action(async (flags: { site?: string; json?: boolean }) => {
