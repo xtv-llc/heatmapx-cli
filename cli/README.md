@@ -184,6 +184,12 @@ HEATMAPX_API_URL=http://localhost:3000 heatmapx data /pricing
 
 ---
 
+## Behind a corporate proxy
+
+If `HTTPS_PROXY` / `HTTP_PROXY` is set, heatmapx routes its requests through the proxy automatically (`NO_PROXY` is respected). This needs Node 22.21+ or 24.5+. On older Node versions requests bypass the proxy and will fail on networks that require one — upgrade Node.
+
+To opt out, set `NODE_USE_ENV_PROXY=0`.
+
 ## FAQ
 
 **Is HeatMapX a Hotjar alternative?**
