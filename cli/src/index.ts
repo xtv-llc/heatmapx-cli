@@ -12,6 +12,19 @@ import { dataCommand } from './commands/data'
 import { patchCommand } from './commands/patch'
 import { experimentsCommand } from './commands/experiments'
 import { sitesCommand } from './commands/sites'
+import { relaunchWithEnvProxy, unsupportedProxyNotice } from './lib/proxy'
+
+// プロキシ環境（HTTPS_PROXY など）では、プロキシを通る設定で自分を起動し直す。
+// 利用者が NODE_USE_ENV_PROXY=1 を手で付けなくても動くようにする。
+const relaunched = relaunchWithEnvProxy()
+if (relaunched !== null) process.exit(relaunched)
+
+// プロキシ環境なのに Node が古くて通れない場合、失敗で終わるときに理由を添える。
+process.on('exit', (code) => {
+  if (code === 0) return
+  const notice = unsupportedProxyNotice()
+  if (notice) console.error(`[heatmapx] ${notice}`)
+})
 
 // バージョンは package.json を唯一のソースにする（ハードコードしてズレるのを防ぐ）
 const { version } = JSON.parse(
